@@ -101,7 +101,9 @@ VALUES
 (1,1,"Antiviral medications"),
 (2,2,"Oral treatment"),
 (3,3,"Injection"),
-(4,4,"Oral treatment");
+(4,4,"Oral treatment"),
+(4,1,"Oral treatment");
 
+CREATE VIEW total_cost AS SELECT treatments.id_medicine, COUNT(treatments.id_treatment) medicines, medicines.cost, sum(medicines.cost) total_cost FROM medicines LEFT JOIN treatments on medicines.id_medicine = treatments.id_medicine GROUP BY cost;
 
-
+CREATE VIEW all_costs AS SELECT sum(total_cost) FROM total_cost;
