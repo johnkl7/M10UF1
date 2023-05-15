@@ -1,13 +1,40 @@
 DROP DATABASE IF EXISTS evilcorp;
 CREATE DATABASE evilcorp;
 USE evilcorp;
-
+DROP VIEW IF EXISTS illuminati_count;
+DROP VIEW IF EXISTS planet_addresses;
+DROP VIEW IF EXISTS total_cost;
+DROP VIEW IF EXISTS all_costs;
+DROP VIEW IF EXISTS illuminati_users;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS diagnoses;
 DROP TABLE IF EXISTS treatments;
 DROP TABLE IF EXISTS doctors;
 DROP TABLE IF EXISTS conditions;
 DROP TABLE IF EXISTS medicines;
+
+
+DROP PROCEDURE IF EXISTS believers;
+
+DELIMITER &&
+CREATE PROCEDURE believers (usuario INT UNSIGNED, conspiracion INT UNSIGNED, believer BOOLEAN)
+BEGIN
+
+START TRANSACTION;
+
+/*IF believer = True THEN*/
+INSERT INTO users_conspiracies (id_user,id_conspiracy)
+VALUES
+(usuario,conspiracion);
+IF believer = True THEN
+COMMIT;
+ELSE ROLLBACK;
+END IF;
+
+END&&
+DELIMITER ;
+
+
 
 DROP FUNCTION IF EXISTS get_city;
 
@@ -387,6 +414,39 @@ VALUES
 (1,9,2,1,1,1,8),
 (11,7,3,1,1,1,7);
 
+DROP TABLE IF EXISTS illuminaty;
+DROP TABLE IF EXISTS users_conspiracies;
+DROP TABLE IF EXISTS conspiracies;
+
+
+CREATE TABLE conspiracies (
+	id_conspiracy INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	conspiracy VARCHAR(64)
+);
+
+CREATE TABLE users_conspiracies (
+	id_user_conspiracy INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	id_user INT UNSIGNED,
+	id_conspiracy INT UNSIGNED,
+	FOREIGN KEY (id_user) REFERENCES users(id_user),
+	FOREIGN KEY (id_conspiracy) REFERENCES conspiracies(id_conspiracy)
+);
+
+INSERT INTO conspiracies (conspiracy)
+VALUES
+("Chemtrail");
+
+CREATE TABLE illuminaty (
+	id_illuminaty INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	id_user INT UNSIGNED UNIQUE,
+	FOREIGN KEY (id_user) REFERENCES users(id_user)
+);
+
+INSERT INTO illuminaty (id_user)
+VALUES
+(1),
+(3);
+
 CREATE VIEW total_cost AS SELECT treatments.id_medicine, COUNT(treatments.id_treatment) medicines, medicines.cost, sum(medicines.cost) total_cost FROM medicines LEFT JOIN treatments on medicines.id_medicine = treatments.id_medicine GROUP BY cost;
 
 CREATE VIEW all_costs AS SELECT sum(total_cost) FROM total_cost;
@@ -400,4 +460,12 @@ JOIN cities ON cities.id_country = countries.id_country
 JOIN streets ON streets.id_city = cities.id_city
 JOIN addresses ON addresses.id_street = streets.id_street
 GROUP BY planets.name;
+
+
+
+CREATE VIEW illuminaty_users AS 
+SELECT users.id_user,users.name,users.surname,users.country from users
+LEFT JOIN illuminaty ON users.id_user = illuminaty.id_user WHERE users.id_user = illuminaty.id_user;
+
+CREATE VIEW illuminaty_count AS SELECT count(id_user) AS Illuminaty_members_count FROM illuminaty;
 
