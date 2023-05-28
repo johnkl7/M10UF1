@@ -6,12 +6,68 @@ DROP VIEW IF EXISTS planet_addresses;
 DROP VIEW IF EXISTS total_cost;
 DROP VIEW IF EXISTS all_costs;
 DROP VIEW IF EXISTS illuminati_users;
-DROP TABLE IF EXISTS users;
+DROP VIEW IF EXISTS users_planets;
+DROP VIEW IF EXISTS medicine_money_planets;
+
+
+DROP TABLE IF EXISTS planets;
 DROP TABLE IF EXISTS diagnoses;
+DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS treatments;
 DROP TABLE IF EXISTS doctors;
 DROP TABLE IF EXISTS conditions;
 DROP TABLE IF EXISTS medicines;
+
+
+DROP FUNCTION IF EXISTS get_random_user;
+DELIMITER $$
+
+CREATE FUNCTION get_random_user_id(planet_id INT UNSIGNED)
+RETURNS INT UNSIGNED
+BEGIN
+	DECLARE total_users INT;
+  DECLARE random_index INT;
+	DECLARE random_user_id INT;
+
+						  
+	SELECT COUNT(*) INTO total_users FROM users WHERE id_planet = planet_id;
+  SET random_index = FLOOR(RAND() * total_users);
+  SELECT id_user INTO random_user_id FROM users WHERE id_planet = planet_id LIMIT random_index, 1;
+	RETURN random_user_id;
+END$$
+
+  DELIMITER ;
+
+DROP PROCEDURE IF EXISTS kill_user;
+
+DELIMITER $$
+CREATE PROCEDURE kill_User (userid INT UNSIGNED)
+BEGIN
+	DECLARE username VARCHAR(24);
+	DECLARE diagnose INT;
+	SELECT name INTO username FROM users WHERE id_user = userid LIMIT 1;
+	SELECT COUNT(id_diagnose) INTO diagnose FROM diagnoses WHERE id_user = userid;
+
+
+
+		IF username IS NULL THEN
+			SELECT "The user is already dead" AS result;
+		ELSE
+			IF diagnose > 0 THEN
+				DELETE FROM treatments WHERE id_diagnose IN (SELECT id_diagnose FROM diagnoses WHERE id_user = userid);
+			END IF;
+				DELETE FROM addresses WHERE id_user = userid;
+				DELETE FROM illuminaty WHERE id_user = userid;
+				DELETE FROM users_conspiracies WHERE id_user = userid;
+				DELETE FROM diagnoses WHERE id_user = userid;
+				DELETE FROM users WHERE id_user = userid;
+				SELECT CONCAT(username, " ha muerto") AS result;
+			END IF;
+END$$
+
+DELIMITER ;
+
+
 
 
 DROP PROCEDURE IF EXISTS believers;
@@ -77,14 +133,27 @@ END$$
 DELIMITER ;
 
 
+
+CREATE TABLE planets (
+	id_planet INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	name VARCHAR(64)
+);
+
+
 CREATE TABLE users (
 	id_user INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name varchar(24) NOT NULL,
 	surname varchar(32) NOT NULL,
 	username varchar(24) NOT NULL,
 	password varchar(50) NOT NULL,
-	country char(3)
+	country char(3),
+	id_planet INT UNSIGNED,
+	FOREIGN KEY (id_planet) REFERENCES planets(id_planet)
 );
+
+
+ALTER TABLE users
+ADD COLUMN dead BOOLEAN DEFAULT FALSE;
 
 CREATE TABLE medicines (
 	id_medicine INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -129,19 +198,36 @@ CREATE TABLE treatments (
   FOREIGN KEY (id_medicine) REFERENCES medicines(id_medicine)
 );
 
-INSERT INTO users (name,surname,username,password,country)
+INSERT INTO planets (name)
 VALUES
-('Hilon','Musg','root',MD5('password'),'USA'),
-('Jeb','Besos','root2',MD5('pass'),'USA'),
-('Vil','gatos','root3',MD5('passwd'),'USA'),
-('Mark','Cucumber','root4',MD5('pass123'),'USA'),
-('Hilon Jr','Musg','hijo', MD5('venus'),'USA'),
-('Jeb Jr','Besos','amazon',MD5('baldpower'),'USA'),
-('Vil Jr','gatos','ihatelinux',MD5('passroot'),'USA'),
-('Mark Jr','Cucumber','root5',MD5('meta'),'USA'),
-('Vladimir','Putin','russiafirst',MD5('motherrussia'),'RUS'),
-('Aleksandr','Dugin','eurasia',MD5('eurasia123'),'RUS'),
-('Xi','Jinpin','CCP',MD5('madeinchina'),'CHN');
+("Earth"),
+("Mars"),
+("Venus"),
+("Saturn"),
+("Jupiter"),
+("Neptune"),
+("Uranus"),
+("Mercury"),
+("Proxima Centauri b");
+
+
+INSERT INTO users (name,surname,username,password,country,id_planet)
+VALUES
+('Hilon','Musg','root',MD5('password'),'USA',1),
+('Jeb','Besos','root2',MD5('pass'),'USA',1),
+('Vil','gatos','root3',MD5('passwd'),'USA',1),
+('Mark','Cucumber','root4',MD5('pass123'),'USA',1),
+('Hilon Jr','Musg','hijo', MD5('venus'),'USA',1),
+('Jeb Jr','Besos','amazon',MD5('baldpower'),'USA',1),
+('Vil Jr','gatos','ihatelinux',MD5('passroot'),'USA',1),
+('Mark Jr','Cucumber','root5',MD5('meta'),'USA',1),
+('Vladimir','Putin','russiafirst',MD5('motherrussia'),'RUS',1),
+('Aleksandr','Dugin','eurasia',MD5('eurasia123'),'RUS',1),
+('Xi','Jinpin','CCP',MD5('madeinchina'),'CHN',1),
+('Joan','Laporta','Barça',MD5('troll'),'CTL',3);
+
+
+
 
 INSERT INTO doctors (doctor)
 VALUES
@@ -192,11 +278,20 @@ DROP TABLE IF EXISTS zip_codes;
 DROP TABLE IF EXISTS streets;
 DROP TABLE IF EXISTS cities;
 DROP TABLE IF EXISTS countries;
-DROP TABLE IF EXISTS planets;
+DROP TABLE IF EXISTS civilizations;
+/*DROP TABLE IF EXISTS planets;*/
 
-CREATE TABLE planets (
+
+/*CREATE TABLE planets (
 	id_planet INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name VARCHAR(64)
+);*/
+
+CREATE TABLE civilizations (
+	id_civilization INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	civilization VARCHAR(64),
+	id_planet INT UNSIGNED,
+	FOREIGN KEY (id_planet) REFERENCES planets(id_planet)
 );
 
 CREATE TABLE countries (
@@ -262,7 +357,7 @@ CREATE TABLE addresses (
 	FOREIGN KEY (id_zip_code) REFERENCES zip_codes(id_zip_code)
 );
 
-INSERT INTO planets (name)
+/*INSERT INTO planets (name)
 VALUES
 ("Earth"),
 ("Mars"),
@@ -272,7 +367,20 @@ VALUES
 ("Neptune"),
 ("Uranus"),
 ("Mercury"),
-("Proxima Centauri b");
+("Proxima Centauri b");*/
+	
+INSERT INTO civilizations (civilization,id_planet)
+VALUES
+("Modern civilization",1),
+("Sumerian civilization",9),
+("Musg civilization",2),
+("Spotify civilization",3),
+("Jup civilization",5),
+("Ring civilization",4),
+("Sky civilization",6),
+("Anus civilization",7),
+("Mer civilization",8);
+
 
 INSERT INTO countries (country,id_planet)
 VALUES
@@ -438,7 +546,7 @@ VALUES
 
 CREATE TABLE illuminaty (
 	id_illuminaty INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
-	id_user INT UNSIGNED UNIQUE,
+	id_user INT UNSIGNED,
 	FOREIGN KEY (id_user) REFERENCES users(id_user)
 );
 
@@ -461,11 +569,23 @@ JOIN streets ON streets.id_city = cities.id_city
 JOIN addresses ON addresses.id_street = streets.id_street
 GROUP BY planets.name;
 
-
-
 CREATE VIEW illuminaty_users AS 
 SELECT users.id_user,users.name,users.surname,users.country from users
 LEFT JOIN illuminaty ON users.id_user = illuminaty.id_user WHERE users.id_user = illuminaty.id_user;
 
 CREATE VIEW illuminaty_count AS SELECT count(id_user) AS Illuminaty_members_count FROM illuminaty;
 
+CREATE VIEW users_planets AS SELECT count(users.name), planets.name FROM users
+LEFT JOIN planets on users.id_planet = planets.id_planet GROUP BY planets.name;
+
+CREATE VIEW medicine_money_planets AS SELECT planets.id_planet AS planet_id, SUM(medicines.sale_price) AS total_money FROM planets
+LEFT JOIN users on planets.id_planet = users.id_planet
+LEFT JOIN diagnoses on users.id_user = diagnoses.id_user
+LEFT JOIN treatments on diagnoses.id_diagnose = treatments.id_diagnose
+LEFT JOIN medicines on treatments.id_medicine = medicines.id_medicine
+GROUP BY planets.id_planet;
+
+DROP USER IF EXISTS 'parca'@'localhost';
+CREATE USER 'parca'@'localhost' IDENTIFIED BY 'parca';
+GRANT SELECT, UPDATE ON users TO 'parca'@'localhost';
+FLUSH PRIVILEGES;
